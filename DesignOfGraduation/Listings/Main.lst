@@ -1,0 +1,283 @@
+C51 COMPILER V9.55   MAIN                                                                  05/31/2019 16:36:37 PAGE 1   
+
+
+C51 COMPILER V9.55, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\Main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Code\Main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Code;.\Code) DEBUG OBJECTE
+                    -XTEND PRINT(.\Listings\Main.lst) TABS(2) OBJECT(.\Objects\Main.obj)
+
+line level    source
+
+   1          #include<reg51.h>
+   2          #include<bujin.h>
+   3          #include<remoteController.h>
+   4          #include<Lcd1602.h>
+   5          
+   6          #include"serialPort.h"
+   7          
+   8          
+   9          /********************************************************************************************
+  10          ¹¦ÄÜ£º ¸Ã³ÌÐòÊÇÍ¨¹ý×ÔÐ´µÄÉÏÎ»»úÊµÏÖ²½½øµç»úµÄ¿ØÖÆ£¬¿ÉÒÔ¿ØÖÆ²½½øµç»úµÄ×ªÏò£¬×ª¶¯Î»ÒÆ£¬×ª¶¯ËÙ¶È£¬²¢ÄÜÍ¨¹ýºìÍ
+             -âÈÈ¸Ð¸ÐÓ¦µ½ÈËÊµÏÖ
+  11          ²½½øµç»úµÄ¼±Í£¡£²¢ÄÜ½«Ïà¹ØÊý¾ÝÉÏ´«µ½µçÄÔ£¬ÓÃÒÔÎÄ¼þµÄÐÎÊÆÀ´±£´æÕâÐ©Êý¾Ý
+  12          
+  13          
+  14          **********************************************************************************************/
+  15          extern unsigned int count;
+  16          extern unsigned int time;
+  17          void delay(unsigned int i);
+  18          //½«½ÓÊÕµ½µÄÊý¾Ý½øÐÐ×ª»»
+  19          void convert();
+  20          
+  21          //ÖÐ¶Ï³õÊ¼»¯º¯Êý
+  22          void interInit();
+  23          
+  24          //¶¨ÒåÒ»¸ö¼ÆÊ±È«¾Ö±äÁ¿
+  25          unsigned int i;
+  26          
+  27          //¶¨ÒåÈ«¾Ö±äÁ¿
+  28          bit direction=0;
+  29          double arc=0.0;
+  30          double arc_temp=0.0;
+  31          double n=1;
+  32          unsigned int count; 
+  33          unsigned char dat[11];
+  34          
+  35          //¶¨Òå°´¼ü´¥·¢Î»
+  36          sbit accelerate=P3^7;
+  37          sbit decline=P3^6;
+  38          sbit startAndEnd=P3^5;
+  39          sbit reverse_direction=P3^4;
+  40          
+  41          sbit int0=P3^2;
+  42          sbit int1=P3^3;
+  43          
+  44          bit flag_start=0;
+  45          bit flag=1;
+  46          
+  47          
+  48          
+  49          //ÒÔÏÂÖ÷³ÌÐòÎÒÁÐ³öÁËÖ÷ÒªµÄ¿ò¼Ü£¬»¹ÒªÍ¨¹ýÒÔºóµÄ±àÐ´À´ÊµÏÖ
+  50          void main()
+  51          {
+  52   1        
+  53   1      
+C51 COMPILER V9.55   MAIN                                                                  05/31/2019 16:36:37 PAGE 2   
+
+  54   1        unsigned char i;
+  55   1        //unsigned char symbal;
+  56   1        
+  57   1        
+  58   1        //´®¿Ú³õÊ¼»¯
+  59   1        serialInit();
+  60   1        //lcd1602³õÊ¼»¯
+  61   1        lcdInitial();
+  62   1        //ÖÐ¶Ï³õÊ¼»¯
+  63   1        interInit();
+  64   1        SHUMA=0x77;
+  65   1        while(1)
+  66   1        {
+  67   2      
+  68   2          //ÉÏÎ»»úÍÐ¹Ü¿ØÖÆ
+  69   2          if(flag)
+  70   2          {
+  71   3            if(readByte()=='*')
+  72   3            {
+  73   4              if(flag)
+  74   4              {
+  75   5              for(i=0;i<11;i++)
+  76   5              {
+  77   6                dat[i]=readByte();
+  78   6              }
+  79   5              //×ª»»ÎªÊµ¼ÊµÄÊý¾Ý
+  80   5              convert();
+  81   5              //¿ªÊ¼ÔËÐÐ
+  82   5              run();
+  83   5              }
+  84   4            }
+  85   3      
+  86   3      
+  87   3          }
+  88   2          
+  89   2          
+  90   2          //ÏÂÎ»»úÍÐ¹Ü¿ØÖÆ
+  91   2          if(flag==0)
+  92   2          {
+  93   3            arc=62.80;
+  94   3            n=0.25;
+  95   3            //ÏòÉÏÎ»»ú·¢ËÍÊý¾Ý
+  96   3            
+  97   3            //µ÷ÓÃ²½½øµç»úÔËÐÐ³ÌÐò   
+  98   3            run();
+  99   3            
+ 100   3            
+ 101   3          }
+ 102   2          
+ 103   2          
+ 104   2          //ÔÚÔËÐÐ¹ý³ÌÖÐ´æÔÚÁ½¸öÖÐ¶Ï  Ò»¸öÊÇÍ¨¹ý°´¼üÊµÏÖµÄÆÕÍ¨ÔÝÍ£ÖÐ¶Ï ÁíÒ»¸öÊÇ±£ÕÏÈËÉí°²È«µÄ¼±Í£ÖÐ¶Ï
+ 105   2          //Èç¹û×ß¹ýÒ»È¦¸üÐÂÊýÂë¹ÜÏÔÊ¾
+ 106   2        }
+ 107   1        
+ 108   1      }
+ 109          
+ 110          void delay(unsigned int i)
+ 111          {
+ 112   1        while(--i);
+ 113   1      }
+ 114          
+ 115          
+C51 COMPILER V9.55   MAIN                                                                  05/31/2019 16:36:37 PAGE 3   
+
+ 116          //ÊäÈë¸ñÊ½±ÈÈç 22.22522.22
+ 117          void convert()
+ 118          {
+ 119   1        unsigned int temp=0;
+ 120   1        unsigned char i;
+ 121   1        //´¦Àí»¡¶È
+ 122   1        arc=0.0;
+ 123   1        for(i=0;i<5;i++)
+ 124   1        {
+ 125   2          if(dat[i]=='.')
+ 126   2            continue;
+ 127   2          temp*=10;
+ 128   2          temp+=(dat[i]-'0');
+ 129   2          
+ 130   2        }
+ 131   1        arc=temp;
+ 132   1        arc=arc*0.01;
+ 133   1        
+ 134   1        //´¦Àí·½Ïò
+ 135   1        if((dat[5]-'0')>0)
+ 136   1          direction =1;
+ 137   1        else 
+ 138   1          direction =0;
+ 139   1        
+ 140   1        
+ 141   1        //´¦ÀíËÙ¶È
+ 142   1        n=0.0;
+ 143   1        temp=0;
+ 144   1        for(i=0;i<5;i++)
+ 145   1        {
+ 146   2          if(dat[i+6]=='.')
+ 147   2            continue;
+ 148   2          temp*=10;
+ 149   2          temp+=(dat[6+i]-'0');
+ 150   2        }
+ 151   1        n=temp;
+ 152   1        n=n*0.01;
+ 153   1      }
+ 154          
+ 155          //ÖÐ¶Ï³õÊ¼»¯º¯Êý
+ 156          void interInit()
+ 157          {
+ 158   1        //³õÊ¼»¯ÖÐ¶Ï0
+ 159   1        IT0=1; //±ßÑØ´¥·¢·½Ê½
+ 160   1        EX0=1; //¿ªÖÐ¶Ï
+ 161   1        EA=1;
+ 162   1        
+ 163   1        //³õÊ¼»¯ÖÐ¶Ï1
+ 164   1        IT1=1;
+ 165   1        EX1=1; //¿ªÖÐ¶Ï
+ 166   1        
+ 167   1        startAndEnd=1;
+ 168   1        decline=1;
+ 169   1        accelerate=1;
+ 170   1      }
+ 171          
+ 172          //ÖÐ¶Ïº¯Êý
+ 173          void turn() interrupt 0
+ 174          {
+ 175   1        EX0=0;
+ 176   1        
+ 177   1        direction=!direction;
+C51 COMPILER V9.55   MAIN                                                                  05/31/2019 16:36:37 PAGE 4   
+
+ 178   1        arc=0.0;
+ 179   1        count=0;
+ 180   1        EX0=1;
+ 181   1      }
+ 182          
+ 183          //¶¨Ê±º¯Êý£¬ÊµÏÖ¶Ôi½øÐÐÔö¼Ó
+ 184          void clock() interrupt 1
+ 185          {
+ 186   1      
+ 187   1      }
+ 188          
+ 189          //ÖÐ¶Ï1£¬½øÐÐÅÐ¶ÏÆô¶¯£¬¼Ó/¼õËÙ£¬Õý·´Ïò
+ 190          void key() interrupt 2
+ 191          {
+ 192   1        //¹ØÖÐ¶Ï1
+ 193   1        EX1=0;
+ 194   1        
+ 195   1        if(startAndEnd==0)  //ÊÇ·ñÆô¶¯£¬ÊÇ·ñÓÉÉÏÎ»»úÍÐ¹Ü
+ 196   1        {
+ 197   2          delay(100);  //Ïû¶¶
+ 198   2          if(startAndEnd==0)
+ 199   2          {
+ 200   3            while(!startAndEnd);
+ 201   3              flag=!flag;  //ÇÐ»»Ä£Ê½
+ 202   3              arc=0.0;
+ 203   3              count=0;
+ 204   3          }
+ 205   2        }
+ 206   1        else
+ 207   1        {
+ 208   2          if(reverse_direction==0)  //ÊÇ·ñ±äÏò
+ 209   2          {
+ 210   3            delay(100);
+ 211   3            if(reverse_direction==0)
+ 212   3            {
+ 213   4              while(!reverse_direction);
+ 214   4              direction=!direction;
+ 215   4              
+ 216   4            }
+ 217   3          }
+ 218   2          else
+ 219   2          {
+ 220   3            if(accelerate==0)  //ÊÇ·ñ¼ÓËÙ
+ 221   3            {
+ 222   4              delay(100);
+ 223   4              if(accelerate==0)
+ 224   4              {
+ 225   5                while(!accelerate);
+ 226   5                n=n+0.1;
+ 227   5                time=10000l/n/COUNT;
+ 228   5                
+ 229   5              }
+ 230   4            }
+ 231   3            else
+ 232   3                if(decline==0)  //ÊÇ·ñ¼õËÙ
+ 233   3              {
+ 234   4                delay(100);
+ 235   4                if(decline==0)
+ 236   4                {
+ 237   5                  while(!decline);
+ 238   5                  if((n-0.1)>0.0) {n=n-0.1;time=10000l/n/COUNT;}
+ 239   5                }
+C51 COMPILER V9.55   MAIN                                                                  05/31/2019 16:36:37 PAGE 5   
+
+ 240   4              }
+ 241   3          }
+ 242   2          
+ 243   2        }
+ 244   1        EX1=1;
+ 245   1      }
+ 246          
+ 247          void init_clock()
+ 248          {
+ 249   1        
+ 250   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    614    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     27       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
